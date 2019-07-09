@@ -23,6 +23,7 @@ import org.apache.dubbo.config.MonitorConfig;
 import org.apache.dubbo.config.ProtocolConfig;
 import org.apache.dubbo.config.ProviderConfig;
 import org.apache.dubbo.config.RegistryConfig;
+
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
@@ -93,13 +94,13 @@ public class EnableDubboConfigTest {
 
     }
 
-    @EnableDubboConfig(multiple = true)
+    @EnableDubboConfig
     @PropertySource("META-INF/config.properties")
     private static class TestMultipleConfig {
 
     }
 
-    @EnableDubboConfig
+    @EnableDubboConfig(multiple = false)
     @PropertySource("META-INF/config.properties")
     private static class TestConfig {
 

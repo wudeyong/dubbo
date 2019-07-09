@@ -30,6 +30,7 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -365,7 +366,7 @@ public class PojoUtils {
                 history.put(pojo, dest);
                 for (Object obj : src) {
                     Type keyType = getGenericClassByIndex(genericType, 0);
-                    Class<?> keyClazz = obj.getClass();
+                    Class<?> keyClazz = obj == null ? null : obj.getClass();
                     if (keyType instanceof Class) {
                         keyClazz = (Class<?>) keyType;
                     }
@@ -380,7 +381,7 @@ public class PojoUtils {
             Object className = ((Map<Object, Object>) pojo).get("class");
             if (className instanceof String) {
                 try {
-                    type = ClassHelper.forName((String) className);
+                    type = ClassUtils.forName((String) className);
                 } catch (ClassNotFoundException e) {
                     // ignore
                 }
@@ -520,7 +521,14 @@ public class PojoUtils {
         } catch (Throwable t) {
             try {
                 Constructor<?>[] constructors = cls.getDeclaredConstructors();
-                if (constructors != null && constructors.length == 0) {
+                /**
+                 * From Javadoc java.lang.Class#getDeclaredConstructors
+                 * This method returns an array of Constructor objects reflecting all the constructors
+                 * declared by the class represented by this Class object.
+                 * This method returns an array of length 0,
+                 * if this Class object represents an interface, a primitive type, an array class, or void.
+                 */
+                if (constructors.length == 0) {
                     throw new RuntimeException("Illegal constructor: " + cls.getName());
                 }
                 Constructor<?> constructor = constructors[0];
@@ -535,7 +543,8 @@ public class PojoUtils {
                     }
                 }
                 constructor.setAccessible(true);
-                return constructor.newInstance(new Object[constructor.getParameterTypes().length]);
+                Object[] parameters = Arrays.stream(constructor.getParameterTypes()).map(PojoUtils::getDefaultValue).toArray();
+                return constructor.newInstance(parameters);
             } catch (InstantiationException e) {
                 throw new RuntimeException(e.getMessage(), e);
             } catch (IllegalAccessException e) {
@@ -544,6 +553,21 @@ public class PojoUtils {
                 throw new RuntimeException(e.getMessage(), e);
             }
         }
+    }
+
+    /**
+     * return init value
+     * @param parameterType
+     * @return
+     */
+    private static Object getDefaultValue(Class<?> parameterType) {
+        if (parameterType.getName().equals("char")) {
+            return Character.MIN_VALUE;
+        }
+        if (parameterType.getName().equals("bool")) {
+            return false;
+        }
+        return parameterType.isPrimitive() ? 0 : null;
     }
 
     private static Method getSetterMethod(Class<?> cls, String property, Class<?> valueCls) {
